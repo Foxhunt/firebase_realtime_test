@@ -2,186 +2,76 @@
 <html>
 
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Welcome to Firebase Hosting</title>
-
-  <!-- update the version number as needed -->
-  <script defer src="/__/firebase/5.9.3/firebase-app.js"></script>
-  <!-- include only the Firebase features as you need -->
-  <script defer src="/__/firebase/5.9.3/firebase-auth.js"></script>
-  <script defer src="/__/firebase/5.9.3/firebase-database.js"></script>
-  <script defer src="/__/firebase/5.9.3/firebase-messaging.js"></script>
-  <script defer src="/__/firebase/5.9.3/firebase-storage.js"></script>
-  <!-- initialize the SDK after all desired features are loaded -->
-  <script defer src="/__/firebase/init.js"></script>
-
-  <style media="screen">
-    body {
-      background: #ECEFF1;
-      color: rgba(0, 0, 0, 0.87);
-      font-family: Roboto, Helvetica, Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-    }
-
-    #message {
-      background: white;
-      max-width: 360px;
-      margin: 100px auto 16px;
-      padding: 32px 24px;
-      border-radius: 3px;
-    }
-
-    #message h2 {
-      color: #ffa100;
-      font-weight: bold;
-      font-size: 16px;
-      margin: 0 0 8px;
-    }
-
-    #message h1 {
-      font-size: 22px;
-      font-weight: 300;
-      color: rgba(0, 0, 0, 0.6);
-      margin: 0 0 16px;
-    }
-
-    #message p {
-      line-height: 140%;
-      margin: 16px 0 24px;
-      font-size: 14px;
-    }
-
-    #message a {
-      display: block;
-      text-align: center;
-      background: #039be5;
-      text-transform: uppercase;
-      text-decoration: none;
-      color: white;
-      padding: 16px;
-      border-radius: 4px;
-    }
-
-    #message,
-    #message a {
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    }
-
-    #load {
-      color: rgba(0, 0, 0, 0.4);
-      text-align: center;
-      font-size: 13px;
-    }
-
-    @media (max-width: 600px) {
-
-      body,
-      #message {
-        margin-top: 0;
-        background: white;
-        box-shadow: none;
-      }
-
-      body {
-        border-top: 16px solid #ffa100;
-      }
-    }
-  </style>
 </head>
 
 <body>
-  <div id="message">
-    <h2>Welcome</h2>
-    <h1>Firebase Hosting Setup Complete</h1>
-    <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something
-      extraordinary!</p>
-    <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-  </div>
-  <p id="load">Firebase SDK Loading&hellip;</p>
-
+  <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-firestore.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-      // // The Firebase SDK is initialized and available here!
-      //
-      // firebase.auth().onAuthStateChanged(user => { });
-      // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-      // firebase.messaging().requestPermission().then(() => { });
-      // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-      //
-      // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyBEUoYf-ublKZK_hgalXYkHDfwyS5_reSI",
+        authDomain: "fir-realtime-test-7bf25.firebaseapp.com",
+        databaseURL: "https://fir-realtime-test-7bf25.firebaseio.com",
+        projectId: "fir-realtime-test-7bf25",
+        storageBucket: "fir-realtime-test-7bf25.appspot.com",
+        messagingSenderId: "130594666380"
+      };
+      firebase.initializeApp(config);
 
-      try {
-        let playerID
-        const otherPlayers = {};
-        const app = firebase.app();
-        const features = ['auth', 'database', 'messaging', 'storage'].filter(feature => typeof app[feature] === 'function');
-        document.getElementById('load').innerHTML = `Firebase SDK loaded with ${features.join(', ')}`;
+      let userID
+      const app = firebase.app();
+      const auth = app.auth()
+      const db = app.firestore()
 
-        const auth = app.auth()
-        const playersRef = app.database().ref("Players")
+      let playerRef
+      const otherPlayerUnSubs = new Map()
 
-        auth.onAuthStateChanged(user => {
-          if (user) {
-            playerID = user.uid;
-            // User is signed in
-            console.log(`Player (${playerID}) is signed in`);
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          userID = user.uid
+          console.log("signed in as " + userID)
+          playerRef = db.collection("Players").doc(userID)
+          playerRef.set({
+            online: true
+          })
 
-            playersRef.child(playerID + "/isOnline" ).once( "value" ).then( function( isOnline ) {
-              if ( isOnline.val() === null || isOnline.val() === false ) {
-              } else {
-                alert( "Hey, only one session at a time buddy!" );
-              }
-            });
+          subToOtherPlayers()
+        } else {
+          firebase.auth().signInAnonymously()
+        }
+      })
 
-            playersRef.child(playerID).set({
-              isOnline: true,
-              x: 0,
-              y: 0
-            })
-              .then(function () {
-                console.log('Synchronization succeeded');
-              })
-              .catch(function (error) {
-                console.log('Synchronization failed');
-                console.error(error)
-              });
-          } else {
-            // User is signed out
-            console.log(`Player is signed out`);
-
-            auth.signInAnonymously().catch(function (error) {
-              console.log(error.code + ": " + error.message);
-            })
-          }
+      window.addEventListener("mousemove", event => {
+        playerRef.update({
+          x: event.pageX,
+          y: event.pageY
         })
+      })
 
-      } catch (e) {
-        console.error(e);
-        document.getElementById('load').innerHTML = 'Error loading the Firebase SDK, check the console.';
+      function subToOtherPlayers() {
+        db.collection("Players").where("online", "==", true)
+          .onSnapshot(querySnapshot => {
+            querySnapshot.docChanges().forEach(change => {
+              if (change.type === "added") {
+                if(change.doc.id != userID){
+                  otherPlayerUnSubs.set(change.doc.id, change.doc.ref.onSnapshot(subToPlayer))
+                }
+              }
+              if (change.type === "removed") {
+                otherPlayerUnSubs.get(hange.doc.id)()
+              }
+            })
+          })
       }
-    });
 
-    function listenToOtherPlayers() {
-      // when a player is added, do something
-      playersRef.on("child_added", playerData => {
-        if (playerData.val()) {
-          if (playerID != playerData.key && !otherPlayers[playerData.key]) {
-            playersRef.child(playerData.key).on("value", listenToPlayer);
-          }
-        }
-      });
-
-      // when a player is removed, do something
-      playersRef.on("child_removed", playerData => {
-        if (playerData.val()) {
-          playersRef.child(playerData.key).off("value", listenToPlayer);
-          delete otherPlayers[playerData.key];
-        }
-      });
-    }
+      function subToPlayer(playerSnapshot) {
+        const {id, x, y} = playerSnapshot.data()
+        console.log(`id: ${id} x: ${x} y: ${y}`)
+      }
+    })
   </script>
 </body>
 
