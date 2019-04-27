@@ -7,7 +7,7 @@
 <body>
   <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.9.4/firebase-database.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       // Initialize Firebase
@@ -18,13 +18,13 @@
         projectId: "fir-realtime-test-7bf25",
         storageBucket: "fir-realtime-test-7bf25.appspot.com",
         messagingSenderId: "130594666380"
-      };
-      firebase.initializeApp(config);
+      }
+      firebase.initializeApp(config)
 
       let userID
-      const app = firebase.app();
+      const app = firebase.app()
       const auth = app.auth()
-      const db = app.firestore()
+      const database = app.database()
 
       let playerRef
       const otherPlayerUnSubs = new Map()
@@ -33,46 +33,60 @@
         if (user) {
           userID = user.uid
           console.log("signed in as " + userID)
-          playerRef = db.collection("Players").doc(userID)
-          playerRef.set({
-            online: true
-          })
+          playerRef = database.ref('Players/' + userID)
 
           subToOtherPlayers()
         } else {
-          firebase.auth().signInAnonymously()
+          auth.signInAnonymously()
         }
       })
 
+      const playerMouse = {
+        x: 0,
+        y: 0
+      }
       window.addEventListener("mousemove", event => {
-        playerRef.update({
-          x: event.pageX,
-          y: event.pageY
-        })
+        playerMouse.x = event.pageX
+        playerMouse.y = event.pageY
       })
 
-      function subToOtherPlayers() {
-        db.collection("Players").where("online", "==", true)
-          .onSnapshot(querySnapshot => {
-            querySnapshot.docChanges().forEach(change => {
-              if (change.type === "added") {
-                if(change.doc.id != userID){
-                  otherPlayerUnSubs.set(change.doc.id, change.doc.ref.onSnapshot(subToPlayer))
-                }
-              }
-              if (change.type === "removed") {
-                otherPlayerUnSubs.get(hange.doc.id)()
-              }
-            })
-          })
-      }
+      setInterval(() => {
+        playerRef ? playerRef.update(playerMouse) : null
+      }, 1000 / 5)
 
-      function subToPlayer(playerSnapshot) {
-        const {id, x, y} = playerSnapshot.data()
-        console.log(`id: ${id} x: ${x} y: ${y}`)
+      function subToOtherPlayers() {
+        database.ref("Players")
+        .on("child_added", playerSnapshot => {
+          const {x, y} = playerSnapshot.val()
+          console.log(`id: ${playerSnapshot.key} x: ${x} y: ${y}`)
+
+          const playerDiv = document.createElement("div")
+          document.body.appendChild(playerDiv)
+          const style = `
+              position: absolute;
+              width: 10px;
+              height: 10px;
+              background-color: blue;
+            `
+          playerDiv.setAttribute("style", style)
+
+          playerSnapshot.ref.on("value", playerData => {
+            const {x, y} = playerData.val()
+            console.log(`id: ${playerData.key} x: ${x} y: ${y}`)
+            
+            playerDiv.style.left = (x - 5) + "px"
+            playerDiv.style.top = (y - 5) + "px"
+
+          })
+        })
       }
     })
   </script>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
 </body>
 
 </html>
